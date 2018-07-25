@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#3F51B5</color>
+    <color name="colorPrimaryDark">#303F9F</color>
+    <color name="colorAccent">#FF4081</color>
+    <color name="blue">#ff12b7f5</color>
+    <color name="dataBg">#00b9ff</color>
+    <color name="hui">#d7d7d7</color>
+    <color name="white">#fff</color>
+    <color name="fontColor">#767676</color>
+    <color name="chat_bg">#f0f2f8</color>
+    <color name="green">#32bf71</color>
+</resources>

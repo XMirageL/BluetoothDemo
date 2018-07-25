@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_pressed="true">
+        <shape>
+            <corners
+                android:radius="15dp"
+                ></corners>
+            <!-- 设置透明背景色 -->
+            <solid android:color="#f0f0f0" />
+
+            <stroke
+                android:width="1px"
+                android:color="#f0f0f0" />
+        </shape>
+    </item>
+    <item>
+        <shape>
+            <corners
+                android:radius="15dp"
+                ></corners>
+            <!-- 设置透明背景色 -->
+            <solid android:color="#c9c9c9" />
+
+            <stroke
+                android:width="2px"
+                android:color="#c9c9c9" />
+        </shape>
+    </item>
+</selector>

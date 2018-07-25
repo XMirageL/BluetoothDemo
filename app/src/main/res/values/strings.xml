@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">BTChat</string>
+    <item name="Tag_OWN" type="id" />
+    <item name="Tag_FRIEND" type="id" />
+</resources>
