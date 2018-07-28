@@ -19,6 +19,8 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
@@ -32,6 +34,7 @@ import android.widget.PopupWindow;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -101,6 +104,32 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         messageForChatList = new ArrayList<>();
         chatAdapter = new ChatAdapter(this, messageForChatList);
         lv_message.setAdapter(chatAdapter);
+
+        et_send.addTextChangedListener(new TextWatcher() {
+            //只要编辑框内容有变化就会调用该方法，s为编辑框变化后的内容
+            @Override
+            public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+            }
+
+            //编辑框内容变化之前会调用该方法，s为编辑框内容变化之前的内容
+            @Override
+            public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+            }
+
+
+            //编辑框内容变化之后会调用该方法，s为编辑框内容变化后的内容
+            @Override
+            public void afterTextChanged(Editable editable) {
+                String str = et_send.getText().toString();
+                if (str.length() == 0) {
+                    bluetoothService.sendMessage("0xde02");
+                } else {
+                    bluetoothService.sendMessage("0xde01");
+                }
+            }
+        });
     }
 
     @Override
@@ -164,17 +193,25 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 case BluetoothService.MSG_READ_STRING:
                     String string = msg.obj.toString();
                     Log.d(TAG, "收到消息: " + string);
-                    messageForChatList.add(new MessageForChat(false, string));
-                    chatAdapter.notifyDataSetChanged();
-                    lv_message.smoothScrollToPosition(messageForChatList.size());
+                    if ("0xde01".equals(string)) {
+                        tv_state.setText("对方正在输入...");
+                    } else if ("0xde02".equals(string)) {
+                        tv_state.setText("已连接");
+                    } else {
+                        messageForChatList.add(new MessageForChat(false, string));
+                        chatAdapter.notifyDataSetChanged();
+                        lv_message.smoothScrollToPosition(messageForChatList.size());
+                    }
                     break;
                 case BluetoothService.MSG_WRITE_STRING:
                     string = msg.obj.toString();
                     Log.d(TAG, "发送消息: " + string);
-                    messageForChatList.add(new MessageForChat(true, string));
-                    chatAdapter.notifyDataSetChanged();
-                    lv_message.smoothScrollToPosition(messageForChatList.size());
-                    et_send.setText("");
+                    if (!"0xde01".equals(string) && !"0xde02".equals(string)) {
+                        messageForChatList.add(new MessageForChat(true, string));
+                        chatAdapter.notifyDataSetChanged();
+                        lv_message.smoothScrollToPosition(messageForChatList.size());
+                        et_send.setText("");
+                    }
                     break;
                 case BluetoothService.MSG_START_CONNECT:
                     progressDialog.setMessage("正在连接");
@@ -290,7 +327,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 }
                 //结束查找设备
                 case BluetoothAdapter.ACTION_DISCOVERY_FINISHED: {
-                    Log.d(TAG, "onReceive: 结束查找设备,找到"+deviceList.size());
+                    Log.d(TAG, "onReceive: 结束查找设备,找到" + deviceList.size());
                     break;
                 }
                 //开始查找设备
@@ -393,52 +430,25 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             bluetoothService.openBluetooth();
         }
 
-        if(bluetoothService.isBluetoothEnabled()){
-            Intent mIntent = new Intent(
-                    BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
-            startActivityForResult(mIntent, 1);
+        if (bluetoothService.isBluetoothEnabled()) {
+            setDiscoverableTimeout(120*1000);
         }
     }
 
 
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        // TODO Auto-generated method stub
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == 1) {
-            //允许其他设备检测回调 1 是调用时传的code
-            if (resultCode == RESULT_OK) {
-                Log.e(TAG,"允许本地蓝牙被附近的其它蓝牙设备发现");
-                Toast.makeText(this, "允许本地蓝牙被附近的其它蓝牙设备发现", Toast.LENGTH_SHORT)
-                        .show();
-            } else if (resultCode == RESULT_CANCELED) {
-                new AlertDialog.Builder(MainActivity.this)
-                        .setTitle("提示")
-                        .setMessage("应用开启蓝牙开放检测才能正常运行,是否重新开启")
-                        .setCancelable(false)
-                        .setNegativeButton("退出应用", new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-                                finish();
-                            }
-                        })
-                        .setPositiveButton("重新开启", new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-                                Intent mIntent = new Intent(
-                                        BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
-                                startActivityForResult(mIntent, 1);
-                            }
-                        })
-                        .show();
-            }
+    public void setDiscoverableTimeout(int timeout) {
+        BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
+        try {
+            Method setDiscoverableTimeout = BluetoothAdapter.class.getMethod("setDiscoverableTimeout", int.class);
+            setDiscoverableTimeout.setAccessible(true);
+            Method setScanMode = BluetoothAdapter.class.getMethod("setScanMode", int.class, int.class);
+            setScanMode.setAccessible(true);
+            setDiscoverableTimeout.invoke(adapter, timeout);
+            setScanMode.invoke(adapter, BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE, timeout);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-
     }
-
-
-
 
     /**
      * 请求权限的回调
